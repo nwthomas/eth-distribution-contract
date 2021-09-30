@@ -1,15 +1,11 @@
-# Basic Sample Hardhat Project
+# Ethereum Distribution Contract
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
+The purpose of this contract is to allow users to contribute Ether and then distribute it back out evenly.
 
-Try running some of the following tasks:
+Here is the initial problem description:
 
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-node scripts/sample-script.js
-npx hardhat help
-```
+> The smart contract accepts contributions in ETH from people and then divides the ETH up evenly and distributes it to the people who contributed.
+>
+> The maximum contribution per address is 10 ETH and should be configurable, but only be able to be changed by the owner of the contract.
+>
+> The owner should be able to transfer ownership to someone else of their choice."
