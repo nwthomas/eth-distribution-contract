@@ -1,9 +1,7 @@
 const hre = require("hardhat");
 
 const main = async () => {
-  const nftContractFactory = await hre.ethers.getContractFactory(
-    "EthDistributor"
-  );
+  const nftContractFactory = await hre.ethers.getContractFactory("EthDistributor");
   const nftContract = await nftContractFactory.deploy(10 ^ 18);
   await nftContract.deployed();
   console.log("Contract deployed to:", nftContract.address);

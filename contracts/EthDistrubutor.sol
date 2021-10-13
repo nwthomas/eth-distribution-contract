@@ -5,58 +5,95 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-import "hardhat/console.sol";
-
+/// @title A contract for distributing ether equally to any contributors
+/// @author Nathan Thomas
+/// @notice This contract is not audited - use at your own risk
 contract EthDistributor is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
 
+    // Responsible for locking the contract while
     bool private isContractLocked = false;
+
     uint256 private maximumContributionLimit = 10**18;
     uint256 public contributionLimit;
-    mapping(address => uint256) public contributionsPerAddress;
-    mapping(address => bool) public hasContributed;
+    uint256 private maximumContributors;
     address[] public contributors;
+    mapping(address => bool) private invalidContributors;
+    mapping(address => bool) public hasContributed;
+    mapping(address => uint256) public contributionsPerAddress;
 
     modifier isUnlocked() {
         require(!isContractLocked, "The contract is currently locked");
         _;
     }
 
-    constructor(uint256 _contributionLimit) {
-        updateContributionLimit(_contributionLimit);
+    modifier areContractContributionsFull() {
+        require(
+            contributors.length + 1 <= maximumContributors,
+            "No more people can contribute to the contract"
+        );
+        _;
     }
 
+    modifier isValidContributor() {
+        require(
+            !invalidContributors[msg.sender],
+            "This address cannot contribute again to this contract"
+        );
+        _;
+    }
+
+    /// @notice Instantiates a new contract with a contribution limit and a maximum number of contributors.
+    /// @param _contributionLimit Sets an initial limit for the amount of ether each contributor can send to the contract
+    /// @param _maximumContributors Sets a maximum amount of addresses that can contribute. This can not be updated.
+    /// @dev The maximum limit that an owner can set is 10 ether, or 10**18 in preset variable maximumContributionLimit
+    constructor(uint256 _contributionLimit, uint256 _maximumContributors) {
+        updateContributionLimit(_contributionLimit);
+        maximumContributors = _maximumContributors;
+    }
+
+    /// @notice Takes in a new contribution limit and updates the contract with it
+    /// @param _newContributionLimit The new contribution limit for the contract
+    /// @dev The _newContributionLimit cannot be greater than 10 ether
     function updateContributionLimit(uint256 _newContributionLimit) public onlyOwner isUnlocked {
         require(
             _newContributionLimit <= maximumContributionLimit,
             "The new contribution limit must be less than 10 ether"
         );
-        require(
-            _newContributionLimit >= contributionLimit,
-            "The new contribution limit must be greater-than-or-equal-to the previous one"
-        );
         contributionLimit = _newContributionLimit;
     }
 
+    /// @notice This function allows a contributor address to withdraw all of their ether if the distribution process
+    /// has not already been started by the owning address
+    /// @dev This contract attempts to prevent the same address from repeatedly calling the contract by tracking and
+    /// invalidating past contributors
     function withdrawAllAddressEther() external payable isUnlocked {
         require(contributionsPerAddress[msg.sender] > 0, "This address has no ether to withdraw");
         uint256 addressBalance = contributionsPerAddress[msg.sender];
 
-        for (uint256 i = 0; i <= contributors.length; i.add(1)) {
+        for (uint256 i = 0; i <= maximumContributors; i.add(1)) {
             if (contributors[i] == msg.sender) {
                 contributionsPerAddress[contributors[i]] = 0;
                 hasContributed[contributors[i]] = false;
+                invalidContributors[contributors[i]] = true;
                 _rotateContributorArrayValueAtIndex(i);
                 break;
             }
         }
 
-        contributionsPerAddress[msg.sender] = 0;
         (bool success, ) = msg.sender.call{value: addressBalance}("");
         require(success);
     }
 
-    function contribute() external payable isUnlocked {
+    /// @notice Allows any address to contribute to the contract if it's not locked, not full, and
+    /// address has not previously contributed
+    function contribute()
+        external
+        payable
+        isUnlocked
+        areContractContributionsFull
+        isValidContributor
+    {
         uint256 newContributionAmount = contributionsPerAddress[msg.sender].add(msg.value);
         require(
             newContributionAmount <= contributionLimit,
@@ -73,6 +110,8 @@ contract EthDistributor is Ownable, ReentrancyGuard {
         }
     }
 
+    /// @notice This function will distribute any available ether to any current contributors - calling
+    /// this function will lock the contract until it's done running
     function distributeEther() external onlyOwner isUnlocked nonReentrant {
         isContractLocked = true;
 
@@ -81,7 +120,7 @@ contract EthDistributor is Ownable, ReentrancyGuard {
 
         // Due to updates in the contribute and withdrawAllAddressEther() functions,
         // we can trust that this array is current and can use it to distribute ether
-        for (uint256 i = 0; i < contributors.length; i.add(1)) {
+        for (uint256 i = 0; i < maximumContributors; i.add(1)) {
             contributionsPerAddress[contributors[i]] = 0;
             hasContributed[contributors[i]] = false;
             _rotateContributorArrayValueAtIndex(0);
@@ -92,6 +131,10 @@ contract EthDistributor is Ownable, ReentrancyGuard {
         isContractLocked = false;
     }
 
+    /// @notice This removes a given index address and moves the last address in array to given
+    /// that index in order to reduce the length of the array
+    /// @param _index This is the index of the address that should be removed from the array
+    /// @dev This can only be called by the address that instantiated the contract
     function _rotateContributorArrayValueAtIndex(uint256 _index) private onlyOwner {
         if (contributors.length <= 0) {
             return;
