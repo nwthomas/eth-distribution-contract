@@ -55,12 +55,13 @@ describe("EthDistributor", () => {
 
       let error;
       try {
-        await ethDistributor.updateContributionLimit(10, { from: secondary.address });
+        await ethDistributor.connect(secondary).updateContributionLimit(10);
       } catch (newError) {
         error = newError;
       }
 
       expect(error instanceof Error).to.equal(true);
+      expect(String(error).indexOf("Ownable: caller is not the owner") > -1).to.equal(true);
     });
 
     test("throws when the new contribution limit is greater than the maximumContributionLimit", async () => {

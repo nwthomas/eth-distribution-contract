@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 contract EthDistributor is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
 
-    // Responsible for locking the contract while
+    // Responsible for locking the contract while the distribution process occurs
     bool private isContractLocked = false;
 
     uint256 private maximumContributionLimit = 10**18;
