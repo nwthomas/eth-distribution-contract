@@ -16,7 +16,7 @@ contract EthDistributor is Ownable, ReentrancyGuard {
 
     uint256 private maximumContributionLimit = 10**18;
     uint256 public contributionLimit;
-    uint256 private maximumContributors;
+    uint256 public maximumContributors;
     address[] public contributors;
     mapping(address => bool) private invalidContributors;
     mapping(address => bool) public hasContributed;
