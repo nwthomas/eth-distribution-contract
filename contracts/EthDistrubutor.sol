@@ -18,7 +18,6 @@ contract EthDistributor is Ownable, ReentrancyGuard {
     uint256 public contributionLimit;
     uint256 public maximumContributors;
     address[] public contributors;
-    mapping(address => bool) private invalidContributors;
     mapping(address => bool) public hasContributed;
     mapping(address => uint256) public contributionsPerAddress;
 
@@ -29,16 +28,8 @@ contract EthDistributor is Ownable, ReentrancyGuard {
 
     modifier areContractContributionsFull() {
         require(
-            contributors.length + 1 <= maximumContributors,
+            hasContributed[msg.sender] || contributors.length + 1 <= maximumContributors,
             "No more people can contribute to the contract"
-        );
-        _;
-    }
-
-    modifier isValidContributor() {
-        require(
-            !invalidContributors[msg.sender],
-            "This address cannot contribute again to this contract"
         );
         _;
     }
@@ -63,37 +54,9 @@ contract EthDistributor is Ownable, ReentrancyGuard {
         contributionLimit = _newContributionLimit;
     }
 
-    /// @notice This function allows a contributor address to withdraw all of their ether if the distribution process
-    /// has not already been started by the owning address
-    /// @dev This contract attempts to prevent the same address from repeatedly calling the contract by tracking and
-    /// invalidating past contributors
-    function withdrawAllAddressEther() external payable isUnlocked {
-        require(contributionsPerAddress[msg.sender] > 0, "This address has no ether to withdraw");
-        uint256 addressBalance = contributionsPerAddress[msg.sender];
-
-        for (uint256 i = 0; i <= maximumContributors; i.add(1)) {
-            if (contributors[i] == msg.sender) {
-                contributionsPerAddress[contributors[i]] = 0;
-                hasContributed[contributors[i]] = false;
-                invalidContributors[contributors[i]] = true;
-                _rotateContributorArrayValueAtIndex(i);
-                break;
-            }
-        }
-
-        (bool success, ) = msg.sender.call{value: addressBalance}("");
-        require(success);
-    }
-
     /// @notice Allows any address to contribute to the contract if it's not locked, not full, and
     /// address has not previously contributed
-    function contribute()
-        external
-        payable
-        isUnlocked
-        areContractContributionsFull
-        isValidContributor
-    {
+    function contribute() external payable isUnlocked areContractContributionsFull {
         uint256 newContributionAmount = contributionsPerAddress[msg.sender].add(msg.value);
         require(
             newContributionAmount <= contributionLimit,
@@ -108,6 +71,27 @@ contract EthDistributor is Ownable, ReentrancyGuard {
             hasContributed[msg.sender] = true;
             contributors.push(msg.sender);
         }
+    }
+
+    /// @notice This function allows a contributor address to withdraw all of their ether if the distribution process
+    /// has not already been started by the owning address
+    /// @dev This contract attempts to prevent the same address from repeatedly calling the contract by tracking and
+    /// invalidating past contributors
+    function withdrawAllAddressEther() external payable isUnlocked {
+        require(contributionsPerAddress[msg.sender] > 0, "This address has no ether to withdraw");
+        uint256 addressBalance = contributionsPerAddress[msg.sender];
+
+        for (uint256 i = 0; i < maximumContributors; i.add(1)) {
+            if (contributors[i] == msg.sender) {
+                contributionsPerAddress[contributors[i]] = 0;
+                hasContributed[contributors[i]] = false;
+                _rotateContributorArrayValueAtIndex(i);
+                break;
+            }
+        }
+
+        (bool success, ) = msg.sender.call{value: addressBalance}("");
+        require(success);
     }
 
     /// @notice This function will distribute any available ether to any current contributors - calling
@@ -135,7 +119,7 @@ contract EthDistributor is Ownable, ReentrancyGuard {
     /// that index in order to reduce the length of the array
     /// @param _index This is the index of the address that should be removed from the array
     /// @dev This can only be called by the address that instantiated the contract
-    function _rotateContributorArrayValueAtIndex(uint256 _index) private onlyOwner {
+    function _rotateContributorArrayValueAtIndex(uint256 _index) private {
         if (contributors.length <= 0) {
             return;
         }
