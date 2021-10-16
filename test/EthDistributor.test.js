@@ -8,6 +8,14 @@ chai.use(solidity);
 describe("EthDistributor", () => {
   let ownerAddress, secondAddress, thirdAddress;
 
+  const getDeployedContract = async (maximumContribution, maximumContributors) => {
+    const EthDistributor = await ethers.getContractFactory("EthDistributor");
+    const ethDistributor = await EthDistributor.deploy(maximumContribution, maximumContributors);
+    await ethDistributor.deployed();
+
+    return ethDistributor;
+  };
+
   beforeEach(async () => {
     const [owner, second, third] = await ethers.getSigners();
     ownerAddress = owner;
@@ -17,9 +25,7 @@ describe("EthDistributor", () => {
 
   describe("constructor", () => {
     it("instantiates with the correct maximum ether and contributor values", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(10000000000, 100);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(10000000000, 100);
 
       const contributionLimit = await ethDistributor.contributionLimit();
       expect(contributionLimit.toNumber()).to.equal(10000000000);
@@ -29,9 +35,7 @@ describe("EthDistributor", () => {
     });
 
     it("instantiates with owner address correctly", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(10000000000, 100);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(10000000000, 100);
 
       const contractOwner = await ethDistributor.owner();
       expect(contractOwner).to.equal(ownerAddress.address);
@@ -40,9 +44,7 @@ describe("EthDistributor", () => {
 
   describe("updateContributionLimit", () => {
     it("updates the contribution limit when the owner calls it", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(10000, 1);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(10000, 1);
 
       let contributionLimit = await ethDistributor.contributionLimit();
       expect(contributionLimit.toNumber()).to.equal(10000);
@@ -54,9 +56,7 @@ describe("EthDistributor", () => {
     });
 
     it("throws when a non-owner address tries to call it", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(10000, 1);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(10000, 1);
 
       let error;
       try {
@@ -70,9 +70,7 @@ describe("EthDistributor", () => {
     });
 
     it("throws when the new contribution limit is greater than the maximumContributionLimit", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(10000, 1);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(10000, 1);
 
       let error;
       try {
@@ -87,9 +85,7 @@ describe("EthDistributor", () => {
 
   describe("contribute", () => {
     it("adds contribution to contract when called and updates tracking variables", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(10000, 1);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(10000, 1);
 
       await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
 
@@ -106,9 +102,7 @@ describe("EthDistributor", () => {
     });
 
     it("throws if the maximum contributors limit for the contract has been reached", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(10000, 1);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(10000, 1);
 
       await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
 
@@ -126,9 +120,7 @@ describe("EthDistributor", () => {
     });
 
     it("allows the same address to contribute again if contributors limit has been reached", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(10000, 1);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(10000, 1);
 
       await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
       await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
@@ -140,9 +132,7 @@ describe("EthDistributor", () => {
     });
 
     it("throws if the maximum contract limit will be reached", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(1000, 1000);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(1000, 1000);
 
       await ethDistributor.contribute({ value: 1000 });
 
@@ -162,9 +152,7 @@ describe("EthDistributor", () => {
 
   describe("withdrawAllAddressEther", () => {
     it("removes ether from contract", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(1000000000, 1);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(1000000000, 1);
 
       await ethDistributor.connect(secondAddress).contribute({ value: 10000000 });
 
@@ -182,11 +170,9 @@ describe("EthDistributor", () => {
     });
 
     it("sends ether contributed so far back to address", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(10 ** 10, 1);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(10 ** 10, 1);
 
-      await ethDistributor.connect(secondAddress).contribute({ value: 1_000_000_000 });
+      await ethDistributor.connect(secondAddress).contribute({ value: 1000000000 });
 
       await ethDistributor.connect(secondAddress).contribute({ value: 1 });
 
@@ -210,9 +196,7 @@ describe("EthDistributor", () => {
 
   describe("_rotateContibutorArrayValueAtIndex", async () => {
     it("rotates end of contributors array to location of removed contributor", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(1000000000, 100);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(1000000000, 100);
 
       await ethDistributor.contribute({ value: 10000 });
       await ethDistributor.connect(secondAddress).contribute({ value: 10000 });
@@ -229,9 +213,7 @@ describe("EthDistributor", () => {
     });
 
     it("successfully handles when contributors.length == 1", async () => {
-      const EthDistributor = await ethers.getContractFactory("EthDistributor");
-      const ethDistributor = await EthDistributor.deploy(1000000000, 100);
-      await ethDistributor.deployed();
+      const ethDistributor = await getDeployedContract(1000000000, 100);
 
       await ethDistributor.contribute({ value: 10000 });
 
