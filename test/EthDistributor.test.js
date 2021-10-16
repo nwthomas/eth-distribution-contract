@@ -6,6 +6,15 @@ const { expect } = chai;
 chai.use(solidity);
 
 describe("EthDistributor", () => {
+  let ownerAddress, secondAddress, thirdAddress;
+
+  beforeEach(async () => {
+    const [owner, second, third] = await ethers.getSigners();
+    ownerAddress = owner;
+    secondAddress = second;
+    thirdAddress = third;
+  });
+
   describe("constructor", () => {
     it("instantiates with the correct maximum ether and contributor values", async () => {
       const EthDistributor = await ethers.getContractFactory("EthDistributor");
@@ -20,19 +29,17 @@ describe("EthDistributor", () => {
     });
 
     it("instantiates with owner address correctly", async () => {
-      const [owner] = await ethers.getSigners();
       const EthDistributor = await ethers.getContractFactory("EthDistributor");
       const ethDistributor = await EthDistributor.deploy(10000000000, 100);
       await ethDistributor.deployed();
 
       const contractOwner = await ethDistributor.owner();
-      expect(contractOwner).to.equal(owner.address);
+      expect(contractOwner).to.equal(ownerAddress.address);
     });
   });
 
   describe("updateContributionLimit", () => {
     it("updates the contribution limit when the owner calls it", async () => {
-      const [owner] = await ethers.getSigners();
       const EthDistributor = await ethers.getContractFactory("EthDistributor");
       const ethDistributor = await EthDistributor.deploy(10000, 1);
       await ethDistributor.deployed();
@@ -40,15 +47,13 @@ describe("EthDistributor", () => {
       let contributionLimit = await ethDistributor.contributionLimit();
       expect(contributionLimit.toNumber()).to.equal(10000);
 
-      const txn = await ethDistributor.updateContributionLimit(10, { from: owner.address });
-      await txn.wait();
+      await ethDistributor.updateContributionLimit(10);
 
       contributionLimit = await ethDistributor.contributionLimit();
       expect(contributionLimit.toNumber()).to.equal(10);
     });
 
     it("throws when a non-owner address tries to call it", async () => {
-      const [, secondAddress] = await ethers.getSigners();
       const EthDistributor = await ethers.getContractFactory("EthDistributor");
       const ethDistributor = await EthDistributor.deploy(10000, 1);
       await ethDistributor.deployed();
@@ -65,14 +70,13 @@ describe("EthDistributor", () => {
     });
 
     it("throws when the new contribution limit is greater than the maximumContributionLimit", async () => {
-      const [owner] = await ethers.getSigners();
       const EthDistributor = await ethers.getContractFactory("EthDistributor");
       const ethDistributor = await EthDistributor.deploy(10000, 1);
       await ethDistributor.deployed();
 
       let error;
       try {
-        await ethDistributor.updateContributionLimit(10 ** 18 + 1, { from: owner.address });
+        await ethDistributor.updateContributionLimit(10 ** 18 + 1);
       } catch (newError) {
         error = newError;
       }
@@ -83,13 +87,11 @@ describe("EthDistributor", () => {
 
   describe("contribute", () => {
     it("adds contribution to contract when called and updates tracking variables", async () => {
-      const [, secondAddress] = await ethers.getSigners();
       const EthDistributor = await ethers.getContractFactory("EthDistributor");
       const ethDistributor = await EthDistributor.deploy(10000, 1);
       await ethDistributor.deployed();
 
-      const txn = await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
-      txn.wait();
+      await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
 
       const balance = await ethDistributor.provider.getBalance(ethDistributor.address);
       const firstContributor = await ethDistributor.contributors(0);
@@ -104,13 +106,11 @@ describe("EthDistributor", () => {
     });
 
     it("throws if the maximum contributors limit for the contract has been reached", async () => {
-      const [, secondAddress, thirdAddress] = await ethers.getSigners();
       const EthDistributor = await ethers.getContractFactory("EthDistributor");
       const ethDistributor = await EthDistributor.deploy(10000, 1);
       await ethDistributor.deployed();
 
-      const txn = await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
-      txn.wait();
+      await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
 
       let error;
       try {
@@ -126,16 +126,12 @@ describe("EthDistributor", () => {
     });
 
     it("allows the same address to contribute again if contributors limit has been reached", async () => {
-      const [, secondAddress] = await ethers.getSigners();
       const EthDistributor = await ethers.getContractFactory("EthDistributor");
       const ethDistributor = await EthDistributor.deploy(10000, 1);
       await ethDistributor.deployed();
 
-      const firstTxn = await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
-      firstTxn.wait();
-
-      const secondTxn = await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
-      secondTxn.wait();
+      await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
+      await ethDistributor.connect(secondAddress).contribute({ value: 1000 });
 
       const contributionsForAddress = await ethDistributor.contributionsPerAddress(
         secondAddress.address
@@ -148,8 +144,7 @@ describe("EthDistributor", () => {
       const ethDistributor = await EthDistributor.deploy(1000, 1000);
       await ethDistributor.deployed();
 
-      const firstTxn = await ethDistributor.contribute({ value: 1000 });
-      firstTxn.wait();
+      await ethDistributor.contribute({ value: 1000 });
 
       let error;
       try {
@@ -167,21 +162,18 @@ describe("EthDistributor", () => {
 
   describe("withdrawAllAddressEther", () => {
     it("removes ether from contract", async () => {
-      const [, secondAddress] = await ethers.getSigners();
       const EthDistributor = await ethers.getContractFactory("EthDistributor");
       const ethDistributor = await EthDistributor.deploy(1000000000, 1);
       await ethDistributor.deployed();
 
-      const firstTxn = await ethDistributor.connect(secondAddress).contribute({ value: 10000000 });
-      firstTxn.wait();
+      await ethDistributor.connect(secondAddress).contribute({ value: 10000000 });
 
       const beforeContractAddressBalance = await ethDistributor.provider.getBalance(
         ethDistributor.address
       );
       expect(beforeContractAddressBalance.toNumber()).to.equal(10000000);
 
-      const withdrawalTxn = await ethDistributor.connect(secondAddress).withdrawAllAddressEther();
-      withdrawalTxn.wait();
+      await ethDistributor.connect(secondAddress).withdrawAllAddressEther();
 
       const afterContractAddressBalance = await ethDistributor.provider.getBalance(
         ethDistributor.address
@@ -190,24 +182,18 @@ describe("EthDistributor", () => {
     });
 
     it("sends ether contributed so far back to address", async () => {
-      const [, secondAddress] = await ethers.getSigners();
       const EthDistributor = await ethers.getContractFactory("EthDistributor");
       const ethDistributor = await EthDistributor.deploy(10 ** 10, 1);
       await ethDistributor.deployed();
 
-      const firstTxn = await ethDistributor
-        .connect(secondAddress)
-        .contribute({ value: 1_000_000_000 });
-      firstTxn.wait();
+      await ethDistributor.connect(secondAddress).contribute({ value: 1_000_000_000 });
 
-      const secondTxn = await ethDistributor.connect(secondAddress).contribute({ value: 1 });
-      secondTxn.wait();
+      await ethDistributor.connect(secondAddress).contribute({ value: 1 });
 
       let beforeAddressBalance = await ethDistributor.provider.getBalance(secondAddress.address);
       beforeAddressBalance = ethers.utils.formatEther(beforeAddressBalance);
 
-      const withdrawlTxn = await ethDistributor.connect(secondAddress).withdrawAllAddressEther();
-      withdrawlTxn.wait();
+      await ethDistributor.connect(secondAddress).withdrawAllAddressEther();
 
       let afterAddressBalance = await ethDistributor.provider.getBalance(secondAddress.address);
       afterAddressBalance = ethers.utils.formatEther(afterAddressBalance);
@@ -224,29 +210,43 @@ describe("EthDistributor", () => {
 
   describe("_rotateContibutorArrayValueAtIndex", async () => {
     it("rotates end of contributors array to location of removed contributor", async () => {
-      const [owner, secondAddress, thirdAddress] = await ethers.getSigners();
       const EthDistributor = await ethers.getContractFactory("EthDistributor");
       const ethDistributor = await EthDistributor.deploy(1000000000, 100);
       await ethDistributor.deployed();
 
-      const ownerTxn = await ethDistributor.contribute({ value: 10000 });
-      ownerTxn.wait();
-
-      const secondTxn = await ethDistributor.connect(secondAddress).contribute({ value: 10000 });
-      secondTxn.wait();
-
-      const thirdTxn = await ethDistributor.connect(thirdAddress).contribute({ value: 10000 });
-      thirdTxn.wait();
+      await ethDistributor.contribute({ value: 10000 });
+      await ethDistributor.connect(secondAddress).contribute({ value: 10000 });
+      await ethDistributor.connect(thirdAddress).contribute({ value: 10000 });
 
       const beforeWithdrawalAddress = await ethDistributor.contributors(1);
 
-      const withdrawalTxn = await ethDistributor.connect(secondAddress).withdrawAllAddressEther();
-      withdrawalTxn.wait();
+      await ethDistributor.connect(secondAddress).withdrawAllAddressEther();
 
       const afterWithdrawalAddress = await ethDistributor.contributors(1);
 
       expect(beforeWithdrawalAddress).to.equal(secondAddress.address);
       expect(afterWithdrawalAddress).to.equal(thirdAddress.address);
+    });
+
+    it("successfully handles when contributors.length == 1", async () => {
+      const EthDistributor = await ethers.getContractFactory("EthDistributor");
+      const ethDistributor = await EthDistributor.deploy(1000000000, 100);
+      await ethDistributor.deployed();
+
+      await ethDistributor.contribute({ value: 10000 });
+
+      expect(await ethDistributor.contributors(0)).to.equal(ownerAddress.address);
+
+      await ethDistributor.withdrawAllAddressEther();
+
+      let error;
+      try {
+        await ethDistributor.contributors(0);
+      } catch (newError) {
+        error = newError;
+      }
+
+      expect(error instanceof Error).to.equal(true);
     });
   });
 });
