@@ -3,14 +3,11 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /// @title A contract for distributing ether equally to any contributors
 /// @author Nathan Thomas
 /// @notice This contract is not audited - use at your own risk
 contract EthDistributor is Ownable, ReentrancyGuard {
-    using SafeMath for uint256;
-
     // Responsible for locking the contract while the distribution process occurs
     bool private isContractLocked = false;
 
@@ -57,7 +54,7 @@ contract EthDistributor is Ownable, ReentrancyGuard {
     /// @notice Allows any address to contribute to the contract if it's not locked, not full, and
     /// address has not previously contributed
     function contribute() external payable isUnlocked areContractContributionsFull {
-        uint256 newContributionAmount = contributionsPerAddress[msg.sender].add(msg.value);
+        uint256 newContributionAmount = contributionsPerAddress[msg.sender] + msg.value;
         require(
             newContributionAmount <= contributionLimit,
             "Amount sent greater than the maximum contribution limit"
@@ -77,21 +74,21 @@ contract EthDistributor is Ownable, ReentrancyGuard {
     /// has not already been started by the owning address
     /// @dev This contract attempts to prevent the same address from repeatedly calling the contract by tracking and
     /// invalidating past contributors
-    function withdrawAllAddressEther() external payable isUnlocked {
+    function withdrawAllAddressEther() public payable isUnlocked {
         require(contributionsPerAddress[msg.sender] > 0, "This address has no ether to withdraw");
         uint256 addressBalance = contributionsPerAddress[msg.sender];
 
-        for (uint256 i = 0; i < maximumContributors; i.add(1)) {
+        for (uint256 i = 0; i < contributors.length; i += 1) {
             if (contributors[i] == msg.sender) {
                 contributionsPerAddress[contributors[i]] = 0;
                 hasContributed[contributors[i]] = false;
-                _rotateContributorArrayValueAtIndex(i);
+                _rotateContributorsArrayValueAtIndex(i);
                 break;
             }
         }
 
         (bool success, ) = msg.sender.call{value: addressBalance}("");
-        require(success);
+        require(success, "Transfer failed.");
     }
 
     /// @notice This function will distribute any available ether to any current contributors - calling
@@ -100,16 +97,16 @@ contract EthDistributor is Ownable, ReentrancyGuard {
         isContractLocked = true;
 
         uint256 totalBalance = address(this).balance;
-        uint256 amountPerAddress = totalBalance / contributors.length.sub(1);
+        uint256 amountPerAddress = totalBalance / (contributors.length - 1);
 
         // Due to updates in the contribute and withdrawAllAddressEther() functions,
         // we can trust that this array is current and can use it to distribute ether
-        for (uint256 i = 0; i < maximumContributors; i.add(1)) {
+        for (uint256 i = 0; i < contributors.length; i += 1) {
             contributionsPerAddress[contributors[i]] = 0;
             hasContributed[contributors[i]] = false;
-            _rotateContributorArrayValueAtIndex(0);
+            _rotateContributorsArrayValueAtIndex(0);
             (bool success, ) = contributors[i].call{value: amountPerAddress}("");
-            require(success);
+            require(success, "Transfer failed.");
         }
 
         isContractLocked = false;
@@ -119,13 +116,10 @@ contract EthDistributor is Ownable, ReentrancyGuard {
     /// that index in order to reduce the length of the array
     /// @param _index This is the index of the address that should be removed from the array
     /// @dev This can only be called by the address that instantiated the contract
-    function _rotateContributorArrayValueAtIndex(uint256 _index) private {
-        if (contributors.length <= 0) {
-            return;
+    function _rotateContributorsArrayValueAtIndex(uint256 _index) private {
+        if (contributors.length > 0) {
+            contributors[_index] = contributors[contributors.length - 1];
+            contributors.pop();
         }
-
-        address formerLastAddress = contributors[contributors.length - 1];
-        contributors.pop();
-        contributors[_index] = formerLastAddress;
     }
 }

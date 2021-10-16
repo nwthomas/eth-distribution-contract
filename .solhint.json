@@ -7,6 +7,7 @@
     "func-visibility": ["warn", { "ignoreConstructors": true }],
     "quotes": ["warn", "double"],
     "reason-string": "off",
-    "compiler-version": ["error", "^0.8.0"]
+    "compiler-version": ["error", "^0.8.0"],
+    "avoid-low-level-calls": "off"
   }
 }
