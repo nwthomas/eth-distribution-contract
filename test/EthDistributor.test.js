@@ -1,6 +1,6 @@
 const chai = require("chai");
 const { solidity } = require("ethereum-waffle");
-const { ethers } = require("hardhat");
+const { ethers, waffle } = require("hardhat");
 const { expect } = chai;
 
 chai.use(solidity);
@@ -189,29 +189,33 @@ describe("EthDistributor", () => {
       expect(afterContractAddressBalance.toNumber()).to.equal(0);
     });
 
-    // it("sends ether contributed so far back to address", async () => {
-    //   const [, secondAddress] = await ethers.getSigners();
-    //   const EthDistributor = await ethers.getContractFactory("EthDistributor");
-    //   const ethDistributor = await EthDistributor.deploy(1000000000, 1);
-    //   await ethDistributor.deployed();
+    it("sends ether contributed so far back to address", async () => {
+      const [, secondAddress] = await ethers.getSigners();
+      const EthDistributor = await ethers.getContractFactory("EthDistributor");
+      const ethDistributor = await EthDistributor.deploy(10 ** 10, 1);
+      await ethDistributor.deployed();
 
-    //   const firstTxn = await ethDistributor.connect(secondAddress).contribute({ value: 100000000 });
-    //   firstTxn.wait();
+      const firstTxn = await ethDistributor
+        .connect(secondAddress)
+        .contribute({ value: 1_000_000_000 });
+      firstTxn.wait();
 
-    //   const secondTxn = await ethDistributor.connect(secondAddress).contribute({ value: 1 });
-    //   secondTxn.wait();
+      const secondTxn = await ethDistributor.connect(secondAddress).contribute({ value: 1 });
+      secondTxn.wait();
 
-    //   let beforeAddressBalance = await secondAddress.balanceOf();
-    //   beforeAddressBalance = ethers.utils.formatEther(beforeAddressBalance);
+      let beforeAddressBalance = await ethDistributor.provider.getBalance(secondAddress.address);
+      beforeAddressBalance = ethers.utils.formatEther(beforeAddressBalance);
 
-    //   const withdrawlTxn = await ethDistributor.connect(secondAddress).withdrawAllAddressEther();
-    //   withdrawlTxn.wait();
+      const withdrawlTxn = await ethDistributor.connect(secondAddress).withdrawAllAddressEther();
+      withdrawlTxn.wait();
 
-    //   let afterAddressBalance = await secondAddress.getBalance();
-    //   afterAddressBalance = ethers.utils.formatEther(afterAddressBalance);
+      let afterAddressBalance = await ethDistributor.provider.getBalance(secondAddress.address);
+      afterAddressBalance = ethers.utils.formatEther(afterAddressBalance);
 
-    //   console.log(afterAddressBalance - beforeAddressBalance);
-    // });
+      expect(await ethDistributor.hasContributed(secondAddress.address)).to.equal(false);
+      expect(await ethDistributor.contributionsPerAddress(secondAddress.address)).to.equal(0);
+      expect(await ethDistributor.provider.getBalance(ethDistributor.address)).to.equal(0);
+    });
   });
 
   describe("distributeEther", () => {
