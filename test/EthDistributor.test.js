@@ -1,6 +1,6 @@
 const chai = require("chai");
 const { solidity } = require("ethereum-waffle");
-const { ethers, waffle } = require("hardhat");
+const { ethers } = require("hardhat");
 const { expect } = chai;
 
 chai.use(solidity);
@@ -11,13 +11,13 @@ describe("EthDistributor", () => {
   const getDeployedContract = async (maximumContribution, maximumContributors) => {
     const EthDistributor = await ethers.getContractFactory("EthDistributor");
     const ethDistributor = await EthDistributor.deploy(maximumContribution, maximumContributors);
-    await ethDistributor.deployed();
 
     return ethDistributor;
   };
 
   beforeEach(async () => {
     const [owner, second, third] = await ethers.getSigners();
+
     ownerAddress = owner;
     secondAddress = second;
     thirdAddress = third;
@@ -25,6 +25,7 @@ describe("EthDistributor", () => {
 
   describe("constructor", () => {
     it("instantiates with the correct maximum ether and contributor values", async () => {
+      const [owner, second, third] = await ethers.getSigners();
       const ethDistributor = await getDeployedContract(10000000000, 100);
 
       const contributionLimit = await ethDistributor.contributionLimit();

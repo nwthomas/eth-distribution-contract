@@ -17,3 +17,5 @@ To facilitate this, I wrote a contract and supplemented it using Open Zeppelin's
 ## Open Questions
 
 - Should I include a minimum contribution amount to prevent some malicious actors from dusting the contract with multiple accounts to clutter up the contract/distribution process?
+- Do I have to use a `receive` function instead of `contribute` (e.g. unclear on this process)?
+- What's the syntax to accuretely test account balance after receiving ether sent back?
