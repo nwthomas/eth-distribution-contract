@@ -57,7 +57,7 @@ contract EthDistributor is Ownable, ReentrancyGuard {
 
     /// @notice Allows any address to contribute to the contract if it's not locked, not full, and
     /// address has not previously contributed
-    function contribute() external payable isUnlocked areContractContributionsFull {
+    receive() external payable isUnlocked areContractContributionsFull {
         uint256 newContributionAmount = contributionsPerAddress[msg.sender] + msg.value;
         require(
             newContributionAmount <= contributionLimit,
