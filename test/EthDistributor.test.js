@@ -278,6 +278,40 @@ describe("EthDistributor", () => {
       expect(txn).to.emit(ethDistributor, "Distribution").withArgs(secondAddress.address, 3334);
       expect(txn).to.emit(ethDistributor, "Distribution").withArgs(thirdAddress.address, 3334);
     });
+
+    it("resets all state variables after being called", async () => {
+      const ethDistributor = await getDeployedContract(10 ** 10, 1000);
+
+      await ownerAddress.sendTransaction({
+        to: ethDistributor.address,
+        value: 10000,
+      });
+      await secondAddress.sendTransaction({
+        to: ethDistributor.address,
+        value: 1,
+      });
+      await thirdAddress.sendTransaction({
+        to: ethDistributor.address,
+        value: 1,
+      });
+
+      await ethDistributor.distributeEther();
+
+      let error;
+      try {
+        await ethDistributor.contributors(0);
+      } catch (newError) {
+        error = newError;
+      }
+
+      expect(error instanceof Error).to.equal(true);
+      expect(await ethDistributor.hasContributed(ownerAddress.address)).to.equal(false);
+      expect(await ethDistributor.hasContributed(secondAddress.address)).to.equal(false);
+      expect(await ethDistributor.hasContributed(thirdAddress.address)).to.equal(false);
+      expect(await ethDistributor.contributionsPerAddress(ownerAddress.address)).to.equal(0);
+      expect(await ethDistributor.contributionsPerAddress(secondAddress.address)).to.equal(0);
+      expect(await ethDistributor.contributionsPerAddress(thirdAddress.address)).to.equal(0);
+    });
   });
 
   describe("_rotateContibutorArrayValueAtIndex", async () => {
