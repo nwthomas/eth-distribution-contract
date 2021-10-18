@@ -170,17 +170,19 @@ describe("EthDistributor", () => {
       expect(afterContractAddressBalance.toNumber()).to.equal(0);
     });
 
-    it("sends ether contributed so far back to address", async () => {
+    it("sends ether contributed to address", async () => {
       const ethDistributor = await getDeployedContract(10 ** 10, 1);
 
-      await ethDistributor.connect(secondAddress).contribute({ value: 1000000000 });
+      const initialValue = 1000000000;
+      await ethDistributor.connect(secondAddress).contribute({ value: initialValue });
 
-      await ethDistributor.connect(secondAddress).contribute({ value: 1 });
+      const additionalValue = 1;
+      await ethDistributor.connect(secondAddress).contribute({ value: additionaValue });
 
       let beforeAddressBalance = await ethDistributor.provider.getBalance(secondAddress.address);
       beforeAddressBalance = ethers.utils.formatEther(beforeAddressBalance);
 
-      await ethDistributor.connect(secondAddress).withdrawAllAddressEther();
+      const withdrawalTxn = await ethDistributor.connect(secondAddress).withdrawAllAddressEther();
 
       let afterAddressBalance = await ethDistributor.provider.getBalance(secondAddress.address);
       afterAddressBalance = ethers.utils.formatEther(afterAddressBalance);
@@ -188,6 +190,9 @@ describe("EthDistributor", () => {
       expect(await ethDistributor.hasContributed(secondAddress.address)).to.equal(false);
       expect(await ethDistributor.contributionsPerAddress(secondAddress.address)).to.equal(0);
       expect(await ethDistributor.provider.getBalance(ethDistributor.address)).to.equal(0);
+      expect(withdrawalTxn)
+        .to.emit(ethDistributor, "Withdrawal")
+        .withArgs(secondAddress.address, initialValue + additionalValue);
     });
   });
 
