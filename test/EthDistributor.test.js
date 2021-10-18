@@ -238,7 +238,46 @@ describe("EthDistributor", () => {
   });
 
   describe("distributeEther", () => {
-    // finish
+    it("throws if the caller is not the owner", async () => {
+      const ethDistributor = await getDeployedContract(10 ** 10, 100);
+
+      await ownerAddress.sendTransaction({
+        to: ethDistributor.address,
+        value: 100,
+      });
+
+      let error;
+      try {
+        await ethDistributor.connect(secondAddress).distributeEther();
+      } catch (newError) {
+        error = newError;
+      }
+
+      expect(error instanceof Error).to.equal(true);
+      expect(String(error).indexOf("Ownable: caller is not the owner") > -1).to.equal(true);
+    });
+
+    it("distributes ether to various addresses that have contributed", async () => {
+      const ethDistributor = await getDeployedContract(10 ** 10, 1000);
+
+      await ownerAddress.sendTransaction({
+        to: ethDistributor.address,
+        value: 10000,
+      });
+      await secondAddress.sendTransaction({
+        to: ethDistributor.address,
+        value: 1,
+      });
+      await thirdAddress.sendTransaction({
+        to: ethDistributor.address,
+        value: 1,
+      });
+
+      const txn = await ethDistributor.distributeEther();
+      expect(txn).to.emit(ethDistributor, "Distribution").withArgs(ownerAddress.address, 3334);
+      expect(txn).to.emit(ethDistributor, "Distribution").withArgs(secondAddress.address, 3334);
+      expect(txn).to.emit(ethDistributor, "Distribution").withArgs(thirdAddress.address, 3334);
+    });
   });
 
   describe("_rotateContibutorArrayValueAtIndex", async () => {

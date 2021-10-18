@@ -19,7 +19,7 @@ contract EthDistributor is Ownable, ReentrancyGuard {
     mapping(address => uint256) public contributionsPerAddress;
 
     event Contribution(address _from, uint256 _value);
-    event Distribution(address[] _contributors);
+    event Distribution(address _to, uint256 _amount);
     event Withdrawal(address _to, uint256 _value);
 
     modifier isUnlocked() {
@@ -104,19 +104,18 @@ contract EthDistributor is Ownable, ReentrancyGuard {
         isContractLocked = true;
 
         uint256 totalBalance = address(this).balance;
-        uint256 amountPerAddress = totalBalance / (contributors.length - 1);
+        uint256 amountPerAddress = totalBalance / contributors.length;
 
         // Due to updates in the contribute and withdrawAllAddressEther() functions,
         // we can trust that this array is current and can use it to distribute ether
-        for (uint256 i = 0; i < contributors.length; i += 1) {
-            contributionsPerAddress[contributors[i]] = 0;
-            hasContributed[contributors[i]] = false;
-            _rotateContributorsArrayValueAtIndex(0);
-            (bool success, ) = contributors[i].call{value: amountPerAddress}("");
+        while (contributors.length > 0) {
+            contributionsPerAddress[contributors[0]] = 0;
+            hasContributed[contributors[0]] = false;
+            (bool success, ) = contributors[0].call{value: amountPerAddress}("");
             require(success, "Transfer failed.");
+            emit Distribution(contributors[0], amountPerAddress);
+            _rotateContributorsArrayValueAtIndex(0);
         }
-
-        emit Distribution(contributors);
 
         isContractLocked = false;
     }
