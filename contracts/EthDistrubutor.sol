@@ -18,6 +18,10 @@ contract EthDistributor is Ownable, ReentrancyGuard {
     mapping(address => bool) public hasContributed;
     mapping(address => uint256) public contributionsPerAddress;
 
+    event Contribution(address _from, uint256 _value);
+    event Distribution(address[] _contributors);
+    event Withdrawal(address _to, uint256 _value);
+
     modifier isUnlocked() {
         require(!isContractLocked, "The contract is currently locked");
         _;
@@ -68,6 +72,8 @@ contract EthDistributor is Ownable, ReentrancyGuard {
             hasContributed[msg.sender] = true;
             contributors.push(msg.sender);
         }
+
+        emit Contribution(msg.sender, msg.value);
     }
 
     /// @notice This function allows a contributor address to withdraw all of their ether if the distribution process
@@ -89,6 +95,7 @@ contract EthDistributor is Ownable, ReentrancyGuard {
 
         (bool success, ) = msg.sender.call{value: addressBalance}("");
         require(success, "Transfer failed.");
+        emit Withdrawal(msg.sender, addressBalance);
     }
 
     /// @notice This function will distribute any available ether to any current contributors - calling
@@ -108,6 +115,8 @@ contract EthDistributor is Ownable, ReentrancyGuard {
             (bool success, ) = contributors[i].call{value: amountPerAddress}("");
             require(success, "Transfer failed.");
         }
+
+        emit Distribution(contributors);
 
         isContractLocked = false;
     }
