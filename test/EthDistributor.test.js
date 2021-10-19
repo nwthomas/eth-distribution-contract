@@ -73,8 +73,9 @@ describe("EthDistributor", () => {
         error = newError;
       }
 
-      expect(error instanceof Error).to.equal(true);
+      // expect(error instanceof Error).to.equal(true);
       expect(String(error).indexOf("Ownable: caller is not the owner") > -1).to.equal(true);
+      expect(await ethDistributor.contributionLimit()).to.equal(10000);
     });
 
     it("throws when the new contribution limit is greater than the maximumContributionLimit", async () => {
@@ -246,13 +247,7 @@ describe("EthDistributor", () => {
         value: additionalValue,
       });
 
-      let beforeAddressBalance = await ethDistributor.provider.getBalance(secondAddress.address);
-      beforeAddressBalance = ethers.utils.formatEther(beforeAddressBalance);
-
       const withdrawalTxn = await ethDistributor.connect(secondAddress).withdrawAllAddressEther();
-
-      let afterAddressBalance = await ethDistributor.provider.getBalance(secondAddress.address);
-      afterAddressBalance = ethers.utils.formatEther(afterAddressBalance);
 
       expect(await ethDistributor.hasContributed(secondAddress.address)).to.equal(false);
       expect(await ethDistributor.contributionsPerAddress(secondAddress.address)).to.equal(0);

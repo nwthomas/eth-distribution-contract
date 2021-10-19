@@ -16,8 +16,4 @@ To facilitate this, I wrote a contract and supplemented it using Open Zeppelin's
 
 ## Open Questions
 
-- Should I include a minimum contribution amount to prevent some malicious actors from dusting the contract with multiple accounts to clutter up the contract/distribution process?
-- What's the syntax to accuretely test account balance after receiving ether sent back?
-- Testing questions:
-  - How do I test if sending a transaction fails that it reverts?
-  - How do I test running a transaction while another is processing (e.g. to test my mutext)?
+- How do I test running a transaction while another is processing (e.g. to test my mutext)?

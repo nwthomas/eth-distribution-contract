@@ -4,6 +4,7 @@ require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
+require("hardhat-watcher");
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -22,5 +23,22 @@ module.exports = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+  watcher: {
+    compilation: {
+      tasks: ["compile"],
+      files: ["./contracts"],
+      verbose: true,
+    },
+    ci: {
+      tasks: [
+        "clean",
+        { command: "compile", params: { quiet: true } },
+        {
+          command: "test",
+          params: { noCompile: true, testFiles: ["./test/EthDistributor.test.js"] },
+        },
+      ],
+    },
   },
 };
