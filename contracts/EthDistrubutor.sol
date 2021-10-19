@@ -13,6 +13,7 @@ contract EthDistributor is Ownable, ReentrancyGuard {
 
     uint256 private maximumContributionLimit = 10**18;
     uint256 public contributionLimit;
+    uint256 public minimumContribution;
     uint256 public maximumContributors;
     address[] public contributors;
     mapping(address => bool) public hasContributed;
@@ -27,6 +28,24 @@ contract EthDistributor is Ownable, ReentrancyGuard {
         _;
     }
 
+    modifier isValidContribution() {
+        uint256 newContributionAmount = contributionsPerAddress[msg.sender] + msg.value;
+        require(
+            msg.value >= minimumContribution,
+            string(
+                abi.encodePacked(
+                    "The amount sent must be greater-than-or-equal-to ",
+                    _uintToString(minimumContribution)
+                )
+            )
+        );
+        require(
+            newContributionAmount <= contributionLimit,
+            "Amount sent greater than the maximum contribution limit"
+        );
+        _;
+    }
+
     modifier areContractContributionsFull() {
         require(
             hasContributed[msg.sender] || contributors.length + 1 <= maximumContributors,
@@ -35,13 +54,20 @@ contract EthDistributor is Ownable, ReentrancyGuard {
         _;
     }
 
-    /// @notice Instantiates a new contract with a contribution limit and a maximum number of contributors.
+    /// @notice Instantiates a new contract with a contribution limit and a maximum number of contributors. It's recommended
+    /// that you use either 0.1 or 0.01 ether as the minimum contribution amount.
     /// @param _contributionLimit Sets an initial limit for the amount of ether each contributor can send to the contract
+    /// @param _minimumContribution Sets a minimum amount that addresses have to contribute when sending ether to the contract
     /// @param _maximumContributors Sets a maximum amount of addresses that can contribute. This can not be updated.
-    /// @dev The maximum limit that an owner can set is 10 ether, or 10**18 in preset variable maximumContributionLimit
-    constructor(uint256 _contributionLimit, uint256 _maximumContributors) {
+    /// @dev The maximum limit that an owner can set is 10 ether, or 10**18 in preset variable maximumContributionLimie=t
+    constructor(
+        uint256 _contributionLimit,
+        uint256 _minimumContribution,
+        uint256 _maximumContributors
+    ) {
         updateContributionLimit(_contributionLimit);
         maximumContributors = _maximumContributors;
+        minimumContribution = _minimumContribution;
     }
 
     /// @notice Takes in a new contribution limit and updates the contract with it
@@ -57,13 +83,8 @@ contract EthDistributor is Ownable, ReentrancyGuard {
 
     /// @notice Allows any address to contribute to the contract if it's not locked, not full, and
     /// address has not previously contributed
-    receive() external payable isUnlocked areContractContributionsFull {
-        uint256 newContributionAmount = contributionsPerAddress[msg.sender] + msg.value;
-        require(
-            newContributionAmount <= contributionLimit,
-            "Amount sent greater than the maximum contribution limit"
-        );
-        contributionsPerAddress[msg.sender] = newContributionAmount;
+    receive() external payable isUnlocked areContractContributionsFull isValidContribution {
+        contributionsPerAddress[msg.sender] = contributionsPerAddress[msg.sender] + msg.value;
 
         // Iterating through the contributors array would be inefficient here, so
         // the stub hasContributed mapping allows us to check if the address would
@@ -129,5 +150,33 @@ contract EthDistributor is Ownable, ReentrancyGuard {
             contributors[_index] = contributors[contributors.length - 1];
             contributors.pop();
         }
+    }
+
+    /// @notice Converts a uint to a string
+    /// @param _i The unsigned integer to be converted to a string
+    /// @dev This code was taken from: https://stackoverflow.com/questions/47129173/how-to-convert-uint-to-string-in-solidity
+    function _uintToString(uint256 _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
+        }
+
+        uint256 j = _i;
+        uint256 len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+
+        bytes memory bstr = new bytes(len);
+        uint256 k = len;
+        while (_i != 0) {
+            k = k - 1;
+            uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+
+        return string(bstr);
     }
 }

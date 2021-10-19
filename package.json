@@ -8,7 +8,7 @@
     "lint": "./node_modules/.bin/solhint -f table contracts/**/*.sol",
     "start": "npx hardhat run scripts/run.js",
     "server": "npx hardhat node",
-    "test": "mocha"
+    "test": "npx hardhat test"
   },
   "keywords": [],
   "author": "",
