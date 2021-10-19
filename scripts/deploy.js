@@ -2,14 +2,15 @@ const hre = require("hardhat");
 
 const main = async () => {
   const ethDistributorFactory = await hre.ethers.getContractFactory("EthDistributor");
-  const ethDistributor = await ethDistributorFactory.deploy();
+  // Parameters for deploy are max contribution, min contribution, max contributors
+  const ethDistributor = await ethDistributorFactory.deploy(1000, 1000, 1000);
   await ethDistributor.deployed();
 
   console.log("Contract deployed to:", ethDistributor.address);
 
-  let txn = await nftContract.makeNFT();
+  const txn = await ethDistributor.contributionLimit();
   await txn.wait();
-  console.log("Minted an NFT");
+  console.log("Contribution limit: ", txn);
 };
 
 (async function runMain() {
