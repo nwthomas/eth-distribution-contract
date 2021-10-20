@@ -54,8 +54,8 @@ contract EthDistributor is Ownable, ReentrancyGuard {
         _;
     }
 
-    /// @notice Instantiates a new contract with a contribution limit and a maximum number of contributors. It's recommended
-    /// that you use either 0.1 or 0.01 ether as the minimum contribution amount.
+    /// @notice Instantiates a new contract with a contribution limit, minimum contribution, and maximum number of contributors.
+    /// It's recommended that you use either 0.1 or 0.01 ether as the minimum contribution amount.
     /// @param _contributionLimit Sets an initial limit for the amount of ether each contributor can send to the contract
     /// @param _minimumContribution Sets a minimum amount that addresses have to contribute when sending ether to the contract
     /// @param _maximumContributors Sets a maximum amount of addresses that can contribute. This can not be updated.
@@ -101,7 +101,7 @@ contract EthDistributor is Ownable, ReentrancyGuard {
     /// has not already been started by the owning address
     /// @dev This contract attempts to prevent the same address from repeatedly calling the contract by tracking and
     /// invalidating past contributors
-    function withdrawAllAddressEther() public payable isUnlocked {
+    function withdrawAllAddressEther() external payable isUnlocked {
         require(contributionsPerAddress[msg.sender] > 0, "This address has no ether to withdraw");
         uint256 addressBalance = contributionsPerAddress[msg.sender];
 
@@ -155,7 +155,7 @@ contract EthDistributor is Ownable, ReentrancyGuard {
     /// @notice Converts a uint to a string
     /// @param _i The unsigned integer to be converted to a string
     /// @dev This code was taken from: https://stackoverflow.com/questions/47129173/how-to-convert-uint-to-string-in-solidity
-    function _uintToString(uint256 _i) internal pure returns (string memory _uintAsString) {
+    function _uintToString(uint256 _i) private pure returns (string memory _uintAsString) {
         if (_i == 0) {
             return "0";
         }
