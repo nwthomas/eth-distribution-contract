@@ -12,7 +12,6 @@ dotenv.config();
 // This is a shim since TypeScript is unhappy with additional objects in the config object
 type HardhatUserConfigExtended = HardhatUserConfig & { [key: string]: any };
 
-
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
@@ -21,7 +20,9 @@ const config: HardhatUserConfigExtended = {
   networks: {
     rinkeby: {
       url: process.env.RINKEBY_APP_SECRET_KEY || "",
-      accounts: process.env.RINKEBY_WALLET_PRIVATE_KEY? [process.env.RINKEBY_WALLET_PRIVATE_KEY] || [],
+      accounts: process.env.RINKEBY_WALLET_PRIVATE_KEY
+        ? [process.env.RINKEBY_WALLET_PRIVATE_KEY]
+        : [],
     },
   },
   gasReporter: {

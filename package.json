@@ -8,7 +8,7 @@
     "deploy-local": "npx hardhat run scripts/deploy.js --network localhost",
     "deploy-rinkeby": "npx hardhat run scripts/deploy.js --network rinkeby",
     "lint": "./node_modules/.bin/solhint -f table contracts/**/*.sol",
-    "start": "npx hardhat run scripts/run.js",
+    "start": "npx hardhat run scripts/run.ts",
     "server": "npx hardhat node",
     "test": "npx hardhat test"
   },
