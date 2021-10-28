@@ -132,10 +132,11 @@ contract EthDistributor is Ownable, ReentrancyGuard {
         while (contributors.length > 0) {
             contributionsPerAddress[contributors[0]] = 0;
             hasContributed[contributors[0]] = false;
-            (bool success, ) = contributors[0].call{value: amountPerAddress}("");
+            address currentContributor = contributors[0];
+            _rotateContributorsArrayValueAtIndex(0);
+            (bool success, ) = currentContributor.call{value: amountPerAddress}("");
             require(success, "Transfer failed.");
             emit Distribution(contributors[0], amountPerAddress);
-            _rotateContributorsArrayValueAtIndex(0);
         }
 
         isContractLocked = false;
