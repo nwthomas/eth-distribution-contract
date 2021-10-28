@@ -1,8 +1,8 @@
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
 import { ethers } from "hardhat";
-const { expect } = chai;
 import { Signer } from "ethers";
+const { expect } = chai;
 
 chai.use(solidity);
 
