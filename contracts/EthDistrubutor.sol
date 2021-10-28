@@ -3,11 +3,14 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 /// @title A contract for distributing ether equally to any contributors
 /// @author Nathan Thomas
 /// @notice This contract is not audited - use at your own risk
 contract EthDistributor is Ownable, ReentrancyGuard {
+    using Strings for uint256;
+
     // Responsible for locking the contract while the distribution process occurs
     bool private isContractLocked = false;
 
@@ -35,7 +38,7 @@ contract EthDistributor is Ownable, ReentrancyGuard {
             string(
                 abi.encodePacked(
                     "The amount sent must be greater-than-or-equal-to ",
-                    _uintToString(minimumContribution)
+                    minimumContribution.toString()
                 )
             )
         );
@@ -151,33 +154,5 @@ contract EthDistributor is Ownable, ReentrancyGuard {
             contributors[_index] = contributors[contributors.length - 1];
             contributors.pop();
         }
-    }
-
-    /// @notice Converts a uint to a string
-    /// @param _i The unsigned integer to be converted to a string
-    /// @dev This code was taken from: https://stackoverflow.com/questions/47129173/how-to-convert-uint-to-string-in-solidity
-    function _uintToString(uint256 _i) private pure returns (string memory _uintAsString) {
-        if (_i == 0) {
-            return "0";
-        }
-
-        uint256 j = _i;
-        uint256 len;
-        while (j != 0) {
-            len++;
-            j /= 10;
-        }
-
-        bytes memory bstr = new bytes(len);
-        uint256 k = len;
-        while (_i != 0) {
-            k = k - 1;
-            uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
-            bytes1 b1 = bytes1(temp);
-            bstr[k] = b1;
-            _i /= 10;
-        }
-
-        return string(bstr);
     }
 }
