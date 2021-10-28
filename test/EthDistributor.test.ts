@@ -1,17 +1,21 @@
-const chai = require("chai");
-const { solidity } = require("ethereum-waffle");
-const { ethers } = require("hardhat");
+import chai from "chai";
+import { solidity } from "ethereum-waffle";
+import { ethers } from "hardhat";
 const { expect } = chai;
 
 chai.use(solidity);
 
+type AddressObject = {
+  address: string;
+};
+
 describe("EthDistributor", () => {
-  let ownerAddress, secondAddress, thirdAddress;
+  let ownerAddress: AddressObject, secondAddress: AddressObject, thirdAddress: AddressObject;
 
   const getDeployedContract = async (
-    maximumContribution = 10 ** 18,
-    minimumContribution = ethers.utils.parseEther("0.1"),
-    maximumContributors = 100
+    maximumContribution: number = 10 ** 18,
+    minimumContribution: number = ethers.utils.parseEther("0.1").toNumber(),
+    maximumContributors: number = 100
   ) => {
     const EthDistributor = await ethers.getContractFactory("EthDistributor");
     const ethDistributor = await EthDistributor.deploy(
