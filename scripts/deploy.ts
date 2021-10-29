@@ -9,7 +9,6 @@ const main = async () => {
   console.log("Contract deployed to:", ethDistributor.address);
 
   const txn = await ethDistributor.contributionLimit();
-  await txn.wait();
   console.log("Contribution limit: ", txn);
 };
 
