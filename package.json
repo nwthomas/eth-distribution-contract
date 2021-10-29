@@ -9,6 +9,7 @@
   "license": "MIT",
   "scripts": {
     "compile": "npx hardhat compile",
+    "coverage": "npx hardhat coverage",
     "deploy-local": "npx hardhat run scripts/deploy.js --network localhost",
     "deploy-rinkeby": "npx hardhat run scripts/deploy.js --network rinkeby",
     "lint": "./node_modules/.bin/solhint -f table contracts/**/*.sol",
