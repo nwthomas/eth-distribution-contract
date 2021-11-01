@@ -1,17 +1,15 @@
 import chai from "chai";
+import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { solidity } from "ethereum-waffle";
 import { ethers } from "hardhat";
-import { Signer } from "ethers";
 const { expect } = chai;
 
 chai.use(solidity);
 
-// This is a temporary shim since the Signer type exported by 'ethers' doesn't seem to be recognized
-// as having a string address type on it
-type SignerType = Signer & { address: string };
-
 describe("EthDistributor", () => {
-  let ownerAddress: SignerType, secondAddress: SignerType, thirdAddress: SignerType;
+  let ownerAddress: SignerWithAddress,
+    secondAddress: SignerWithAddress,
+    thirdAddress: SignerWithAddress;
 
   const getDeployedContract = async (
     maximumContribution: number = 10 ** 18,
